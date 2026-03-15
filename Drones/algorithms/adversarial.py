@@ -106,15 +106,14 @@ class MinimaxAgent(MultiAgentSearchAgent):
                         minimax(sucesor, profundidad_restante, indice_agente_actual + 1)
                         for sucesor in estados_sucesores)
 
-                for accion_candidata in acciones_legales_dron:
-                    
-                    estado_sucesor_dron = state.generate_successor(0, accion_candidata)
-                    puntaje_accion = minimax(estado_sucesor_dron, self.depth, 1)
-                    if puntaje_accion > mejor_puntaje:
-                        mejor_puntaje = puntaje_accion
-                        mejor_accion = accion_candidata
+        for accion_candidata in acciones_legales_dron:
+            estado_sucesor_dron = state.generate_successor(0, accion_candidata)
+            puntaje_accion = minimax(estado_sucesor_dron, self.depth, 1)
+            if puntaje_accion > mejor_puntaje:
+                mejor_puntaje = puntaje_accion
+                mejor_accion = accion_candidata
 
-                return mejor_accion
+        return mejor_accion
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
