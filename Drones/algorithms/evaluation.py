@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from world.game_state import GameState
 
+from algorithms.utils import bfs_distance, dijkstra, manhattan_distance
+
 
 def evaluation_function(state: GameState) -> float:
     """
@@ -42,4 +44,48 @@ def evaluation_function(state: GameState) -> float:
     - A good evaluation function balances delivery progress with hunter avoidance.
     """
     # TODO: Implement your code here
-    return 0.0
+    layout = state.get_layout()
+    posicion_dron = state.get_drone_position()
+    posiciones_cazadores = state.get_hunter_positions()
+    entregas_pendientes = state.get_pending_deliveries()
+    puntaje_actual = state.get_score()
+
+    puntaje = puntaje_actual * 0.5 - len(entregas_pendientes) * 50
+
+    if entregas_pendientes:
+        costos = [dijkstra(layout, posicion_dron, e)[0] for e in entregas_pendientes]
+        costos_validos = [c for c in costos if c is not None and c < float('inf')]
+        if costos_validos:
+            puntaje += 100.0 / (min(costos_validos) + 1)
+
+    distancias_cazadores = []
+    for cazador in posiciones_cazadores:
+        if manhattan_distance(cazador, posicion_dron) > 10:
+            distancias_cazadores.append(manhattan_distance(cazador, posicion_dron))
+        else:
+            d = bfs_distance(layout, cazador, posicion_dron, True)
+            distancias_cazadores.append(d if d is not None and d < float('inf') else float('inf'))
+
+    for d in distancias_cazadores:
+        if d <= 5:
+            puntaje -= 200.0 / (d + 0.5)
+
+    distancias_finitas = [d for d in distancias_cazadores if d < float('inf')]
+    if distancias_finitas:
+        puntaje += min(min(distancias_finitas) * 10, 80)
+
+    if entregas_pendientes and distancias_finitas:
+        for entrega in entregas_pendientes:
+            if manhattan_distance(posicion_dron, entrega) > 10:
+                continue
+            costo_dron, camino_dron = dijkstra(layout, posicion_dron, entrega)
+            if costo_dron is None or costo_dron == float('inf'):
+                continue
+            min_cazador = min(
+                (bfs_distance(layout, c, entrega, True) or float('inf'))
+                for c in posiciones_cazadores
+            )
+            if costo_dron < min_cazador:
+                puntaje += 60.0 / (costo_dron + 1)
+
+    return max(-999.0, min(999.0, puntaje))

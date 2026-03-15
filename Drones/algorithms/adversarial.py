@@ -66,7 +66,55 @@ class MinimaxAgent(MultiAgentSearchAgent):
         - Return the ACTION (not the value) that maximizes the minimax value for the drone.
         """
         # TODO: Implement your code here
-        return None
+        numero_agentes = state.get_num_agents()
+        acciones_legales_dron = state.get_legal_actions(0)
+
+        mejor_accion = None
+        mejor_puntaje = float('-inf')
+        
+        def minimax(estado_actual, profundidad_restante, indice_agente_actual):
+                # Caso terminal: victoria o derrota
+                if estado_actual.is_win() or estado_actual.is_lose():
+                    return self.evaluation_function(estado_actual)
+
+                # Todos los agentes movieron: empieza nuevo ply
+                if indice_agente_actual == numero_agentes:
+                    indice_agente_actual = 0
+                    profundidad_restante -= 1
+
+                # Profundidad agotada: evaluar con heurística
+                if profundidad_restante == 0:
+                    return self.evaluation_function(estado_actual)
+
+                acciones_legales_agente = estado_actual.get_legal_actions(indice_agente_actual)
+                if not acciones_legales_agente:
+                    return self.evaluation_function(estado_actual)
+
+                estados_sucesores = [
+                    estado_actual.generate_successor(indice_agente_actual, accion)
+                    for accion in acciones_legales_agente]
+
+                # Nodo MAX: turno del dron (agente 0)
+                if indice_agente_actual == 0:
+                    return max(
+                        minimax(sucesor, profundidad_restante, indice_agente_actual + 1)
+                        for sucesor in estados_sucesores)
+
+                # Nodo MIN: turno de un cazador (agentes 1..N)
+                else:
+                    return min(
+                        minimax(sucesor, profundidad_restante, indice_agente_actual + 1)
+                        for sucesor in estados_sucesores)
+
+                for accion_candidata in acciones_legales_dron:
+                    
+                    estado_sucesor_dron = state.generate_successor(0, accion_candidata)
+                    puntaje_accion = minimax(estado_sucesor_dron, self.depth, 1)
+                    if puntaje_accion > mejor_puntaje:
+                        mejor_puntaje = puntaje_accion
+                        mejor_accion = accion_candidata
+
+                return mejor_accion
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -91,7 +139,69 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         - Pass alpha and beta through the recursive calls.
         """
         # TODO: Implement your code here (BONUS)
-        return None
+        numero_agentes = state.get_num_agents()
+        acciones_legales_dron = state.get_legal_actions(0)
+
+        mejor_accion = None
+        mejor_puntaje = float('-inf')
+        alfa = float('-inf')
+        beta = float('inf')
+
+        def alpha_beta(estado_actual, profundidad_restante, indice_agente_actual, alfa, beta):
+            # Caso terminal: victoria o derrota
+            if estado_actual.is_win() or estado_actual.is_lose():
+                return self.evaluation_function(estado_actual)
+
+            # Todos los agentes movieron: empieza nuevo ply
+            if indice_agente_actual == numero_agentes:
+                indice_agente_actual = 0
+                profundidad_restante -= 1
+
+            # Profundidad agotada: evaluar con heurística
+            if profundidad_restante == 0:
+                return self.evaluation_function(estado_actual)
+
+            acciones_legales_agente = estado_actual.get_legal_actions(indice_agente_actual)
+            if not acciones_legales_agente:
+                return self.evaluation_function(estado_actual)
+
+            # Nodo MAX: turno del dron (agente 0)
+            if indice_agente_actual == 0:
+                mejor_valor = float('-inf')
+                for accion in acciones_legales_agente:
+                    estado_sucesor = estado_actual.generate_successor(indice_agente_actual, accion)
+                    valor_sucesor = alpha_beta(estado_sucesor, profundidad_restante, indice_agente_actual + 1, alfa, beta)
+                    mejor_valor = max(mejor_valor, valor_sucesor)
+                    alfa = max(alfa, mejor_valor)
+                    # Poda: el nodo MIN padre nunca elegirá este camino
+                    if mejor_valor > beta:
+                        break
+                return mejor_valor
+
+            # Nodo MIN: turno de un cazador (agentes 1..N)
+            else:
+                mejor_valor = float('inf')
+                for accion in acciones_legales_agente:
+                    estado_sucesor = estado_actual.generate_successor(indice_agente_actual, accion)
+                    valor_sucesor = alpha_beta(estado_sucesor, profundidad_restante, indice_agente_actual + 1, alfa, beta)
+                    mejor_valor = min(mejor_valor, valor_sucesor)
+                    beta = min(beta, mejor_valor)
+                    # Poda: el nodo MAX padre nunca elegirá este camino
+                    if mejor_valor < alfa:
+                        break
+                return mejor_valor
+
+        for accion_candidata in acciones_legales_dron:
+            estado_sucesor_dron = state.generate_successor(0, accion_candidata)
+            puntaje_accion = alpha_beta(estado_sucesor_dron, self.depth, 1, alfa, beta)
+            if puntaje_accion > mejor_puntaje:
+                mejor_puntaje = puntaje_accion
+                mejor_accion = accion_candidata
+                alfa = max(alfa, mejor_puntaje)
+
+        return mejor_accion
+
+
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
