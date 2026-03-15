@@ -265,36 +265,39 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         mejor_accion = None
         mejor_puntaje = float('-inf')
 
-        def expectimax(estado_actual, profundidad_restante, indice_agente_actual):
+        def expectimax(estado_actual, profundidad_restante, indice_agente_actual):            
             if estado_actual.is_win() or estado_actual.is_lose():
                 return self.evaluation_function(estado_actual)
-
-            if indice_agente_actual == numero_agentes:
-                indice_agente_actual = 0
-                profundidad_restante -= 1
-
+            
             if profundidad_restante == 0:
                 return self.evaluation_function(estado_actual)
-
+            
             acciones_legales_agente = estado_actual.get_legal_actions(indice_agente_actual)
             if not acciones_legales_agente:
                 return self.evaluation_function(estado_actual)
+            
+            siguiente_agente = (indice_agente_actual + 1) % numero_agentes
 
-            estados_sucesores = [
-                estado_actual.generate_successor(indice_agente_actual, accion)
-                for accion in acciones_legales_agente
-            ]
+            nueva_profundidad = profundidad_restante - 1 if siguiente_agente == 0 else profundidad_restante
             
             if indice_agente_actual == 0:
                 return max(
-                    expectimax(sucesor, profundidad_restante, indice_agente_actual + 1)
-                    for sucesor in estados_sucesores
+                    expectimax(
+                        estado_actual.generate_successor(indice_agente_actual, accion),
+                        nueva_profundidad,
+                        siguiente_agente
+                    )
+                    for accion in acciones_legales_agente
                 )
-
+            
             else:
                 valores_hijos = [
-                    expectimax(sucesor, profundidad_restante, indice_agente_actual + 1)
-                    for sucesor in estados_sucesores
+                    expectimax(
+                        estado_actual.generate_successor(indice_agente_actual, accion),
+                        nueva_profundidad,
+                        siguiente_agente
+                    )
+                    for accion in acciones_legales_agente
                 ]
                 valor_greedy = min(valores_hijos)
                 valor_aleatorio = sum(valores_hijos) / len(valores_hijos)
