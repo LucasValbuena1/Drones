@@ -233,5 +233,52 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         - Do NOT prune in expectimax (unlike alpha-beta).
         - self.prob is set via the constructor argument prob.
         """
-        # TODO: Implement your code here
-        return None
+        numero_agentes = state.get_num_agents()
+        acciones_legales_dron = state.get_legal_actions(0)
+
+        mejor_accion = None
+        mejor_puntaje = float('-inf')
+
+        def expectimax(estado_actual, profundidad_restante, indice_agente_actual):
+            if estado_actual.is_win() or estado_actual.is_lose():
+                return self.evaluation_function(estado_actual)
+
+            if indice_agente_actual == numero_agentes:
+                indice_agente_actual = 0
+                profundidad_restante -= 1
+
+            if profundidad_restante == 0:
+                return self.evaluation_function(estado_actual)
+
+            acciones_legales_agente = estado_actual.get_legal_actions(indice_agente_actual)
+            if not acciones_legales_agente:
+                return self.evaluation_function(estado_actual)
+
+            estados_sucesores = [
+                estado_actual.generate_successor(indice_agente_actual, accion)
+                for accion in acciones_legales_agente
+            ]
+            
+            if indice_agente_actual == 0:
+                return max(
+                    expectimax(sucesor, profundidad_restante, indice_agente_actual + 1)
+                    for sucesor in estados_sucesores
+                )
+
+            else:
+                valores_hijos = [
+                    expectimax(sucesor, profundidad_restante, indice_agente_actual + 1)
+                    for sucesor in estados_sucesores
+                ]
+                valor_greedy = min(valores_hijos)
+                valor_aleatorio = sum(valores_hijos) / len(valores_hijos)
+                return (1 - self.prob) * valor_greedy + self.prob * valor_aleatorio
+
+        for accion_candidata in acciones_legales_dron:
+            estado_sucesor_dron = state.generate_successor(0, accion_candidata)
+            puntaje_accion = expectimax(estado_sucesor_dron, self.depth, 1)
+            if puntaje_accion > mejor_puntaje:
+                mejor_puntaje = puntaje_accion
+                mejor_accion = accion_candidata
+
+        return mejor_accion
